@@ -32,8 +32,13 @@ do
 	echo "####  GPS_FILE=$GPS_FILE=  GPS_TXT=$GPS_TXT=;  Executing mkdir $Dir_Date    $Dir_Date/$Dir_15Min"
 	echo "####  Starting log collection "
 
-	# Monitor 2 interfaces
-	timeout 900 python3 adafruit.py > $GPS_FILE
-	gsutil -m cp -r $GPS_FILE gs://samsara_test/AdaFruit/Logs/${GPS_FILE}
+	# Run adafruit for 15 mins and save the logs
+	timeout 900 python3 adafruit.py > /tmp/$GPS_FILE_NAME
+	# move logs into cloud
+	gsutil -m cp -r /tmp/$GPS_FILE_NAME   gs://samsara_test/AdaFruit/Logs/${SERIAL_NUM}/$Dir_Date/
+	# Find all satellite counting messages for whole day
+ 	grep $Dir_Date /tmp/* | egrep "GGA|GSA|GSV" | python3 main_2.py >  /tmp/AllDay_Satellites_seen_${Dir_Date}.csv 
+	# upload the satellite count csv
+    	gsutil -m cp -r /tmp/AllDay_Satellites_seen_${Dir_Date}.csv  gs://samsara_test/AdaFruit/Logs/${SERIAL_NUM}/$Dir_Date/
 done
 
