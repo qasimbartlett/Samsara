@@ -18,7 +18,6 @@ from google.cloud import storage
 class Samsara(object):
 
     def __init__(self):
-        print('abba')
         self.IDs = defaultdict(str, {
             'AP': 'Autopilotmagnetic ',
             'GA': 'Galileo',
@@ -84,11 +83,34 @@ class Samsara(object):
 
         Generic method, Currently returns # of satellites used. Can be expanded to
         save/store other values.
+
+        Field	Meaning
+        0	Message ID $GPGGA
+        1	UTC of position fix
+        2	Latitude
+        3	Direction of latitude:              N: North                S: South
+        4	Longitude
+        5	Direction of longitude:             E: East             W: West
+        6	GPS Quality indicator:
+                0: Fix not valid
+                1: GPS fix
+                2: Differential GPS fix (DGNSS), SBAS, OmniSTAR VBS, Beacon, RTX in GVBS mode
+                3: Not applicable
+                4: RTK Fixed, xFill
+                5: RTK Float, OmniSTAR XP/HP, Location RTK, RTX
+                6: INS Dead reckoning
+        7	Number of SVs in use, range from 00 through to 24+
+        8	HDOP
+        9	Orthometric height (MSL reference)
+        10	M: unit of measure for orthometric height is meters
+        11	Geoid separation
+        12	M: geoid separation measured in meters
+        13	Age of differential GPS data record, Type 1 or Type 9. Null field when DGPS is not used.
+        14	Reference station ID, range 0000 to 4095. A null field when any reference station ID is selected and no corrections are received. See table below for a description of the field values.
+        15
         """
         self.message_count += 1
         number_of_satellites_being_used = -1
-        timestamp = sentence.split(',')[0]
-        system = sentence.split(',')[1]
         gps_status_indicator = sentence.split(',')[self.start_of_sentence + 6]
         if gps_status_indicator:
             number_of_satellites_being_used = sentence.split(',')[self.start_of_sentence + 7]
@@ -116,6 +138,18 @@ class Samsara(object):
         """
         Provides the Satellite status data
         contains information about the list of satellites used for navigation.
+        0	Message ID $GNGSA
+        1	Mode 1:     M = Manual          A = Automatic
+        2	Mode 2: Fix type:               1 = not available               2 = 2D          3 = 3D
+        3	PRN number:
+                01 to 32 for GPS
+                33 to 64 for SBAS
+                64+ for GLONASS
+
+        4	PDOP: 0.5 to 99.9
+        5	HDOP: 0.5 to 99.9
+        6	VDOP: 0.5 to 99.9
+        7	The checksum data, always begins with *
         """
         self.message_count += 1
         # Extract the list of all satellites used
@@ -127,7 +161,7 @@ class Samsara(object):
     def extract_satellites_used(self, sentence):
         # Return a -ve # for sentences that do not carr satellite info
         satellites_used = -1
-        sentence_word_1 = sentence.split(',')[self.start_of_sentence + 4]
+        sentence_word_1 = sentence.split(',')[self.start_of_sentence]
         if 'GGA' in sentence_word_1:
             satellites_used = self.decode_gga(sentence)
         elif 'GSA' in sentence_word_1:
@@ -159,16 +193,16 @@ class Samsara(object):
     def parse(self, sentence):
         # A valid sentence will have a timestamp in it
         # print("\n\n-----------------", line)
-        if ':' in sentence:
+        if 't=' in sentence:
             # Extract the talker ID and check it is a supported ID
-            talker_id = self.supported_talker_identifier(sentence.split(',')[5])
+            talker_id = self.supported_talker_identifier(sentence.split(',')[self.start_of_sentence])
             # Find the TFF
             # print('2.....  ', talker_id)
             if talker_id:
-                timestamp = sentence.split(',')[0]
+                timestamp = float(sentence.split(',')[0].replace('t=', ''))
                 satellites_seen = self.extract_satellites_used(sentence)
                 # if satellites_seen >= 0:
-                # self.compute_time_for_first_fix(satellites_seen, timestamp)
+                self.compute_time_for_first_fix(satellites_seen, timestamp)
 
                 csv_line = '{},{},{}'.format(timestamp, talker_id, satellites_seen)
                 print(csv_line)
@@ -176,10 +210,9 @@ class Samsara(object):
 
 
 if __name__ == "__main__":
-    print('Abba')
     x = Samsara()
     for line in sys.stdin:
-        print(line)
+        # print(line)
         x.write_to_cloud_raw_log(line)
         # print('       ', end='')
-        # x.parse(line)
+        x.parse(line)
