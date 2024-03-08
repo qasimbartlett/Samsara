@@ -1,4 +1,3 @@
-# Imports the Google Cloud client library
 import sys
 from collections import defaultdict
 from google.cloud import logging
@@ -52,15 +51,15 @@ class Samsara(object):
         self.message_count = 0
 
         # Instantiates a client
-        logging_client = logging.Client()
+        # logging_client = logging.Client()
 
         # The name of the log to write to
-        log_name = "device_gps_reports.csv"
+        # log_name = "device_gps_reports.csv"
         # Selects the log to write to
-        self.logger = logging_client.logger(log_name)
+        # self.logger = logging_client.logger(log_name)
 
         # Instantiates a client
-        self.storage_client = storage.Client()
+        # self.storage_client = storage.Client()
 
     def write_to_cloud_raw_log(self, sentence):
         """
@@ -112,6 +111,8 @@ class Samsara(object):
         15
         """
         self.message_count += 1
+        # print('----', sentence)
+        # print('----', sentence.split(','))
         number_of_satellites_being_used = -1
         gps_status_indicator = sentence.split(',')[self.start_of_sentence + 6]
         if gps_status_indicator:
@@ -137,9 +138,13 @@ class Samsara(object):
         7 azimuth Azimuth, degrees True, 000 to 359 xxx 140
         8 SNR SNR (C/No) 00-99 dB, null when not tracking xx
         """
-        num_sats = int(sentence.split(',')[self.start_of_sentence + 3])
         # print('---------', sentence)
-        # print('---------', num_sats)
+        num_sats = -1
+        # The GSV message may not have sat entries
+        if len(sentence.split(',')) > 15:
+           if sentence.split(',')[self.start_of_sentence + 3]:
+              num_sats = int(sentence.split(',')[self.start_of_sentence + 3])
+           # print('---------', num_sats)
         return num_sats
 
     def decode_rmc(self, sentence):
@@ -218,7 +223,7 @@ class Samsara(object):
     def parse(self, sentence):
         # A valid sentence will have a timestamp in it
         # print("\n\n-----------------", line)
-        if '2024' in sentence:
+        if sentence.count('2024') ==1 and '*' in sentence:
             # Extract the talker ID and check it is a supported ID
             talker_id = self.supported_talker_identifier(sentence.split(',')[self.start_of_sentence])
             # Find the TFF
@@ -238,6 +243,6 @@ if __name__ == "__main__":
     x = Samsara()
     for line in sys.stdin:
         # print(line)
-        x.write_to_cloud_raw_log(line)
+        # x.write_to_cloud_raw_log(line)
         # print('       ', end='')
         x.parse(line)

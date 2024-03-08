@@ -24,7 +24,7 @@ import adafruit_gps
 
 # for a computer, use the pyserial library for uart access
 # import serial
-uart = serial.Serial("/dev/tty.usbserial-240", baudrate=9600, timeout=10)
+uart = serial.Serial("COM4", baudrate=9600, timeout=10)
 gps = adafruit_gps.GPS(uart)  # Use UART/pyserial
 
 gps.send_command(b"PMTK104*37")  # DO a COLD stafrt
